@@ -17,13 +17,12 @@ class BookingPress_QRCode_Extension
         // 使用 BookingPress 官方提供的 hook (推薦)
         add_action('bookingpress_after_add_appointment_from_backend', array($this, 'generate_qrcode_after_appointment'), 10, 3);
 
-        // 保留 AJAX hook 作為備用
-        add_action('wp_ajax_bookingpress_book_appointment_booking', array($this, 'generate_qr_after_ajax_booking'), 999);
-        add_action('wp_ajax_nopriv_bookingpress_book_appointment_booking', array($this, 'generate_qr_after_ajax_booking'), 999);
-
-        // 其他備用 hooks
+        // 其他備用 hooks - 不使用會干擾 AJAX 回應的 hooks
         add_action('bookingpress_after_booking_save', array($this, 'generate_qrcode_after_booking'), 10, 3);
         add_action('bookingpress_payment_completed', array($this, 'generate_qrcode_after_booking'), 10, 3);
+
+        // 註冊 WordPress cron 任務來處理延遲的 QR code 生成
+        add_action('bookingpress_generate_qr_delayed', array($this, 'delayed_qr_generation'));
 
         // 添加前端調試腳本
         add_action('wp_footer', array($this, 'add_debug_script'));
@@ -245,16 +244,12 @@ class BookingPress_QRCode_Extension
 
     /**
      * 在 AJAX 預訂完成後生成 QR Code
+     * 已停用 - 避免干擾預約流程
      */
     public function generate_qr_after_ajax_booking()
     {
-        $this->console_log('AJAX 預訂 hook 觸發');
-
-        // 添加到 AJAX response 的 filter
-        add_filter('bookingpress_modify_booking_response', array($this, 'add_qr_debug_to_response'), 999, 2);
-
-        // 延遲執行，讓 BookingPress 先完成預訂處理
-        add_action('shutdown', array($this, 'delayed_qr_generation'));
+        // 不再使用此函數 - 已從 constructor 中移除此 hook
+        // 保留函數定義避免錯誤
     }
 
     /**
@@ -262,50 +257,44 @@ class BookingPress_QRCode_Extension
      */
     public function delayed_qr_generation()
     {
-        global $wpdb, $BookingPress;
+        global $wpdb;
 
         $this->console_log('開始延遲 QR Code 生成');
 
-        if (!class_exists('BookingPress_Core') || !isset($BookingPress->tbl_bookings)) {
-            $this->console_log('BookingPress 不可用');
-            return;
-        }
-
-        // 查找最近 2 分鐘內的預訂，且沒有 QR Code 的
+        // 使用 bookingpress_entries 表（正確的表名）
+        $entries_table = $wpdb->prefix . 'bookingpress_entries';
         $qr_table = $wpdb->prefix . 'bookingpress_qrcodes';
 
+        // 查找最近 5 分鐘內的預訂，且沒有 QR Code 的
         $recent_bookings = $wpdb->get_results(
-            "SELECT b.bookingpress_booking_id, b.bookingpress_customer_name
-             FROM {$BookingPress->tbl_bookings} b
-             LEFT JOIN {$qr_table} q ON b.bookingpress_booking_id = q.booking_id
-             WHERE b.bookingpress_created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            "SELECT b.bookingpress_entry_id as bookingpress_booking_id, b.bookingpress_customer_name
+             FROM {$entries_table} b
+             LEFT JOIN {$qr_table} q ON b.bookingpress_entry_id = q.booking_id
+             WHERE b.bookingpress_created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
              AND q.booking_id IS NULL
-             ORDER BY b.bookingpress_booking_id DESC
-             LIMIT 5"
+             ORDER BY b.bookingpress_entry_id DESC
+             LIMIT 10"
         );
 
-        $this->console_log('找到 ' . count($recent_bookings) . ' 個需要生成 QR Code 的預訂');
+        if ($recent_bookings) {
+            $this->console_log('找到 ' . count($recent_bookings) . ' 個需要生成 QR Code 的預訂');
 
-        foreach ($recent_bookings as $booking) {
-            $this->console_log("為預訂 ID {$booking->bookingpress_booking_id} (客戶: {$booking->bookingpress_customer_name}) 生成 QR Code");
-            $this->generate_qrcode_after_booking($booking->bookingpress_booking_id, array(), array());
+            foreach ($recent_bookings as $booking) {
+                $this->console_log("為預訂 ID {$booking->bookingpress_booking_id} (客戶: {$booking->bookingpress_customer_name}) 生成 QR Code");
+                $this->generate_qrcode_after_booking($booking->bookingpress_booking_id, array(), array());
+            }
+        } else {
+            $this->console_log('沒有找到需要生成 QR Code 的預訂');
         }
     }
 
     /**
      * 將 QR Code 調試信息添加到 BookingPress AJAX response
+     * 已停用 - 避免干擾預約流程
      */
     public function add_qr_debug_to_response($response, $posted_data)
     {
-        if (!isset($response['qr_debug'])) {
-            $response['qr_debug'] = array();
-        }
-
-        $response['qr_debug']['messages'] = $this->console_messages;
-        $response['qr_debug']['hook_triggered'] = true;
-        $response['qr_debug']['timestamp'] = current_time('Y-m-d H:i:s');
-        $response['qr_debug']['booking_action'] = 'bookingpress_book_appointment_booking';
-
+        // 不再修改回應，避免干擾預約流程
         return $response;
     }
 
