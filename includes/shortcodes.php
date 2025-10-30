@@ -23,21 +23,12 @@ function bookingpress_qr_verification_shortcode($atts) {
         true
     );
 
-    // 載入 ZXing 庫 (更快的掃描速度和更好的性能)
-    // 使用 jsDelivr CDN 確保可靠性
+    // 載入 Html5-QRCode 庫 (穩定且手機支援好)
     wp_enqueue_script(
-        'zxing-library',
-        'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js',
+        'html5-qrcode',
+        'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
         array(),
-        '0.20.0',
-        true
-    );
-
-    wp_enqueue_script(
-        'zxing-browser',
-        'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/index.min.js',
-        array('zxing-library'),
-        '0.1.1',
+        '2.3.8',
         true
     );
 
@@ -57,25 +48,9 @@ function bookingpress_qr_verification_shortcode($atts) {
                 <!-- 掃描 QR Code -->
                 <div class="qr-scanner-section">
                     <h3>掃描 QR Code</h3>
-                    <div id="qr-scanner-wrapper">
-                        <div id="qr-video-container">
-                            <video id="qr-video" playsinline></video>
-                            <div id="qr-scan-region">
-                                <div class="qr-corner qr-corner-tl"></div>
-                                <div class="qr-corner qr-corner-tr"></div>
-                                <div class="qr-corner qr-corner-bl"></div>
-                                <div class="qr-corner qr-corner-br"></div>
-                            </div>
-                        </div>
-                        <div id="scanner-controls">
-                            <button id="start-scanner" class="scanner-btn scanner-btn-primary">開始掃描</button>
-                            <button id="stop-scanner" class="scanner-btn scanner-btn-secondary" style="display:none;">停止掃描</button>
-                            <select id="camera-select" style="display:none;"></select>
-                        </div>
-                        <div id="scanner-status">準備就緒</div>
-                    </div>
+                    <div id="qr-reader"></div>
                     <div class="scanner-tips">
-                        <small>💡 提示：將 QR Code 對準掃描框，系統將自動識別</small>
+                        <small>💡 提示：將 QR Code 對準掃描框，系統將自動識別並核銷</small>
                     </div>
                 </div>
 
@@ -130,164 +105,69 @@ function bookingpress_qr_verification_shortcode($atts) {
         font-weight: 600;
     }
 
-    /* ZXing 掃描器自定義樣式 */
-    #qr-scanner-wrapper {
+    /* Html5-QRCode 掃描器自定義樣式 */
+    #qr-reader {
         width: 100%;
-        max-width: 500px;
+        max-width: 600px;
         margin: 0 auto;
-    }
-
-    #qr-video-container {
-        position: relative;
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto 15px;
-        background: #000;
+        border: 2px solid #667eea;
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    #qr-video {
-        width: 100%;
-        height: auto;
-        display: block;
-        min-height: 300px;
-        object-fit: cover;
+    #qr-reader video {
+        border-radius: 10px;
     }
 
-    #qr-scan-region {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 250px;
-        height: 250px;
-        border: 2px solid rgba(0, 255, 0, 0.5);
-        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-        animation: scan-border 2s ease-in-out infinite;
+    #qr-reader__dashboard_section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        padding: 15px !important;
+        border-radius: 0 0 10px 10px !important;
     }
 
-    @keyframes scan-border {
-        0%, 100% { border-color: rgba(0, 255, 0, 0.5); }
-        50% { border-color: rgba(0, 255, 0, 0.9); }
+    #qr-reader__dashboard_section button {
+        background: white !important;
+        color: #667eea !important;
+        border: none !important;
+        border-radius: 6px !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
     }
 
-    .qr-corner {
-        position: absolute;
-        width: 30px;
-        height: 30px;
-        border: 3px solid #00ff00;
-    }
-
-    .qr-corner-tl {
-        top: -2px;
-        left: -2px;
-        border-right: none;
-        border-bottom: none;
-    }
-
-    .qr-corner-tr {
-        top: -2px;
-        right: -2px;
-        border-left: none;
-        border-bottom: none;
-    }
-
-    .qr-corner-bl {
-        bottom: -2px;
-        left: -2px;
-        border-right: none;
-        border-top: none;
-    }
-
-    .qr-corner-br {
-        bottom: -2px;
-        right: -2px;
-        border-left: none;
-        border-top: none;
-    }
-
-    #scanner-controls {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 10px;
-        flex-wrap: wrap;
-    }
-
-    .scanner-btn {
-        padding: 10px 24px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .scanner-btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .scanner-btn-primary:hover {
+    #qr-reader__dashboard_section button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
     }
 
-    .scanner-btn-secondary {
-        background: #dc3545;
-        color: white;
+    #qr-reader__dashboard_section select {
+        background: white !important;
+        color: #333 !important;
+        border: 2px solid white !important;
+        border-radius: 6px !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
     }
 
-    .scanner-btn-secondary:hover {
-        background: #c82333;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+    #qr-reader__scan_region {
+        border: 3px dashed rgba(102, 126, 234, 0.8) !important;
+        border-radius: 8px !important;
     }
 
-    #camera-select {
-        padding: 10px 15px;
-        border: 2px solid #e1e1e1;
-        border-radius: 6px;
-        font-size: 14px;
-        background: white;
-        cursor: pointer;
-    }
-
-    #scanner-status {
-        text-align: center;
-        padding: 8px 15px;
-        background: #e3f2fd;
-        color: #1976d2;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 10px;
-    }
-
-    #scanner-status.scanning {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    #scanner-status.success {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    #scanner-status.error {
-        background: #f8d7da;
-        color: #721c24;
+    #qr-reader__scan_region img {
+        opacity: 0.8 !important;
     }
 
     .scanner-tips {
-        margin-top: 10px;
-        font-size: 12px;
+        margin-top: 15px;
+        padding: 10px;
+        font-size: 14px;
         color: #6c757d;
         text-align: center;
+        background: #f8f9fa;
+        border-radius: 6px;
     }
 
     /* 成功通知樣式 */

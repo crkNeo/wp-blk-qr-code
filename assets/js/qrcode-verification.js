@@ -1,179 +1,74 @@
 /**
- * BookingPress QR Code 核銷頁面腳本 - 使用 ZXing 庫
- * 更快的掃描速度和更好的性能
+ * BookingPress QR Code 核銷頁面腳本 - 使用 Html5-QRCode 庫
+ * 穩定且手機支援好
  */
 
 jQuery(document).ready(function($) {
 
-    let codeReader = null;
-    let selectedDeviceId = null;
-    let isScanning = false;
+    let html5QrcodeScanner = null;
     let isVerifying = false;
 
-    // 初始化掃描器
-    function initScanner() {
-        // 等待 ZXing 庫載入 - 檢查正確的全局變量
-        if (typeof ZXing === 'undefined' || typeof ZXing.BrowserMultiFormatReader === 'undefined') {
-            console.log('ZXing 庫載入中...', {
-                ZXing: typeof ZXing,
-                window: Object.keys(window).filter(k => k.toLowerCase().includes('zxing'))
-            });
-            setTimeout(initScanner, 500);
+    // 初始化 QR Code 掃描器
+    function initQRScanner() {
+        if (typeof Html5QrcodeScanner === 'undefined') {
+            console.log('Html5QrcodeScanner 庫載入中...');
+            setTimeout(initQRScanner, 500);
             return;
         }
 
         try {
-            codeReader = new ZXing.BrowserMultiFormatReader();
-            console.log('ZXing 掃描器已初始化');
-
-            // 不在初始化時就請求權限，等用戶點擊開始掃描時再請求
-            updateStatus('準備就緒，點擊「開始掃描」', 'ready');
-        } catch (error) {
-            console.error('初始化掃描器失敗:', error);
-            updateStatus('初始化失敗，請重新載入頁面', 'error');
-        }
-    }
-
-    // 載入可用的攝像頭
-    async function loadCameras() {
-        try {
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-
-            if (videoInputDevices.length === 0) {
-                updateStatus('未找到攝像頭', 'error');
-                return false;
-            }
-
-            const $cameraSelect = $('#camera-select');
-            $cameraSelect.empty();
-
-            // 優先選擇後置攝像頭
-            let backCameraFound = false;
-            videoInputDevices.forEach((device, index) => {
-                const option = $('<option></option>')
-                    .val(device.deviceId)
-                    .text(device.label || `攝像頭 ${index + 1}`);
-                $cameraSelect.append(option);
-
-                // 檢測後置攝像頭（通常包含 "back" 或 "rear"）
-                const label = (device.label || '').toLowerCase();
-                if (!backCameraFound &&
-                    (label.includes('back') ||
-                     label.includes('rear') ||
-                     label.includes('後') ||
-                     label.includes('environment'))) {
-                    selectedDeviceId = device.deviceId;
-                    backCameraFound = true;
-                }
-            });
-
-            // 如果沒找到後置攝像頭，使用最後一個（手機通常最後一個是後置）
-            if (!selectedDeviceId && videoInputDevices.length > 0) {
-                selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
-            }
-
-            // 設置選中的攝像頭
-            $cameraSelect.val(selectedDeviceId);
-
-            // 如果有多個攝像頭，顯示選擇器
-            if (videoInputDevices.length > 1) {
-                $cameraSelect.show();
-            }
-
-            updateStatus('準備就緒，點擊「開始掃描」', 'ready');
-            console.log(`找到 ${videoInputDevices.length} 個攝像頭，已選擇:`, selectedDeviceId);
-
-            return true;
-
-        } catch (error) {
-            console.error('載入攝像頭失敗:', error);
-            // 如果是權限錯誤，給出更明確的提示
-            if (error.name === 'NotAllowedError') {
-                updateStatus('請允許訪問攝像頭權限', 'error');
-            } else {
-                updateStatus('無法訪問攝像頭，請檢查權限', 'error');
-            }
-            return false;
-        }
-    }
-
-    // 開始掃描
-    async function startScanning() {
-        if (isScanning || !codeReader) return;
-
-        // 如果還沒有選擇攝像頭，先載入攝像頭列表
-        if (!selectedDeviceId) {
-            updateStatus('正在請求攝像頭權限...', 'scanning');
-            const camerasLoaded = await loadCameras();
-
-            if (!camerasLoaded || !selectedDeviceId) {
-                updateStatus('無法訪問攝像頭，請檢查權限或重新整理頁面', 'error');
-                return;
-            }
-        }
-
-        const deviceId = $('#camera-select').val() || selectedDeviceId;
-
-        if (!deviceId) {
-            updateStatus('無法選擇攝像頭，請重新整理頁面', 'error');
-            return;
-        }
-
-        try {
-            isScanning = true;
-            $('#start-scanner').hide();
-            $('#stop-scanner').show();
-            updateStatus('掃描中...請將 QR Code 對準框內', 'scanning');
-
-            console.log('開始使用攝像頭:', deviceId);
-
-            // 開始連續掃描
-            await codeReader.decodeFromVideoDevice(
-                deviceId,
-                'qr-video',
-                (result, error) => {
-                    if (result) {
-                        handleScanSuccess(result.text);
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "qr-reader",
+                {
+                    fps: 30,  // 提高 FPS 以獲得更快的掃描速度
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        // 響應式 qrbox，根據螢幕大小調整
+                        let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        let qrboxSize = Math.floor(minEdge * 0.7);
+                        return { width: qrboxSize, height: qrboxSize };
+                    },
+                    aspectRatio: 1.0,
+                    showTorchButtonIfSupported: true,
+                    showZoomSliderIfSupported: true,
+                    defaultZoomValueIfSupported: 2,
+                    rememberLastUsedCamera: true,
+                    // 優先使用後置攝像頭
+                    videoConstraints: {
+                        facingMode: { ideal: "environment" }
                     }
-                    // 忽略掃描錯誤，繼續掃描
-                }
+                },
+                false
             );
 
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+            console.log('Html5-QRCode 掃描器已初始化');
         } catch (error) {
-            console.error('啟動掃描失敗:', error);
-
-            // 根據錯誤類型提供更好的提示
-            if (error.name === 'NotAllowedError') {
-                updateStatus('請允許訪問攝像頭權限', 'error');
-            } else if (error.name === 'NotFoundError') {
-                updateStatus('找不到攝像頭設備', 'error');
-            } else {
-                updateStatus('啟動掃描失敗: ' + error.message, 'error');
-            }
-
-            stopScanning();
+            console.error('初始化掃描器失敗:', error);
+            showError('初始化失敗，請重新載入頁面');
         }
     }
 
-    // 停止掃描
-    function stopScanning() {
-        if (codeReader) {
-            codeReader.reset();
-        }
-        isScanning = false;
-        $('#start-scanner').show();
-        $('#stop-scanner').hide();
-        updateStatus('已停止掃描', 'ready');
-    }
-
-    // 處理掃描成功
-    function handleScanSuccess(scannedData) {
+    // 掃描成功回調
+    function onScanSuccess(decodedText, decodedResult) {
         if (isVerifying) return; // 防止重複驗證
 
-        console.log('掃描到數據:', scannedData);
+        console.log('QR Code 掃描成功:', decodedText);
 
-        // 暫停掃描
-        stopScanning();
+        // 播放掃描成功嗶聲
+        playBeepSound();
+
+        // 處理掃描結果
+        handleScanResult(decodedText);
+    }
+
+    // 掃描失敗回調
+    function onScanFailure(error) {
+        // 不需要處理每次掃描失敗，這很正常
+    }
+
+    // 處理掃描結果
+    function handleScanResult(scannedData) {
+        console.log('處理掃描數據:', scannedData);
 
         // 嘗試解析 JSON 格式的 QR Code
         let verificationCode = scannedData;
@@ -183,38 +78,27 @@ jQuery(document).ready(function($) {
                 verificationCode = jsonData.verification_code;
             }
         } catch (e) {
-            // 如果不是 JSON，使用原始數據
+            // 如果不是 JSON，直接使用原始數據
         }
 
-        // 驗證碼格式檢查
+        // 檢查是否是有效的驗證碼格式
         if (verificationCode && verificationCode.match(/^BP\d{8}[A-F0-9]{6}$/)) {
-            $('#manual-verification-code').val(verificationCode);
-            updateStatus('掃描成功！正在核銷...', 'success');
+            // 暫停掃描
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(err => console.log('清除掃描器錯誤:', err));
+            }
 
-            // 播放掃描成功音效
-            playBeepSound();
+            // 自動填入驗證碼
+            $('#manual-verification-code').val(verificationCode);
 
             // 自動執行核銷
             setTimeout(() => {
                 verifyBooking(verificationCode);
             }, 300);
         } else {
-            updateStatus('無效的 QR Code: ' + verificationCode, 'error');
             playErrorSound();
-
-            // 2秒後重新開始掃描
-            setTimeout(() => {
-                startScanning();
-            }, 2000);
+            showError('掃描到的不是有效的預訂 QR Code');
         }
-    }
-
-    // 更新狀態顯示
-    function updateStatus(message, type) {
-        const $status = $('#scanner-status');
-        $status.removeClass('scanning success error ready')
-               .addClass(type)
-               .text(message);
     }
 
     // 核銷預訂
@@ -226,7 +110,6 @@ jQuery(document).ready(function($) {
         const originalText = $button.text();
 
         $button.prop('disabled', true).text('核銷中...');
-        updateStatus('正在驗證中...', 'scanning');
 
         const data = {
             action: 'verify_booking_qrcode',
@@ -237,7 +120,6 @@ jQuery(document).ready(function($) {
         $.post(bookingpress_qrcode.ajax_url, data)
             .done(function(response) {
                 if (response.success) {
-                    updateStatus('核銷成功！', 'success');
                     showSuccessNotification(response.data);
                     $('#manual-verification-code').val('');
 
@@ -247,21 +129,19 @@ jQuery(document).ready(function($) {
                     // 播放成功音效
                     playSuccessSound();
                 } else {
-                    updateStatus('核銷失敗: ' + response.data, 'error');
-                    showErrorMessage(response.data || '核銷失敗');
+                    showError(response.data || '核銷失敗');
                     playErrorSound();
 
-                    // 3秒後重新開始掃描
+                    // 3秒後重新啟動掃描
                     setTimeout(() => {
-                        if (!isScanning) {
-                            startScanning();
+                        if (html5QrcodeScanner && html5QrcodeScanner.getState() === Html5QrcodeScannerState.NOT_STARTED) {
+                            initQRScanner();
                         }
                     }, 3000);
                 }
             })
-            .fail(function(xhr, status, error) {
-                updateStatus('網絡錯誤，請重試', 'error');
-                showErrorMessage('網絡錯誤，請檢查網絡連接後重試');
+            .fail(function() {
+                showError('網絡錯誤，請檢查網絡連接後重試');
                 playErrorSound();
             })
             .always(function() {
@@ -297,12 +177,10 @@ jQuery(document).ready(function($) {
                 $('.notification-overlay').fadeOut(300, function() {
                     $(this).remove();
 
-                    // 關閉通知後自動重新開始掃描
-                    if (!isScanning) {
-                        setTimeout(() => {
-                            startScanning();
-                        }, 500);
-                    }
+                    // 關閉通知後自動重新啟動掃描
+                    setTimeout(() => {
+                        initQRScanner();
+                    }, 500);
                 });
             }
         });
@@ -316,7 +194,7 @@ jQuery(document).ready(function($) {
     }
 
     // 顯示錯誤訊息
-    function showErrorMessage(message) {
+    function showError(message) {
         const $result = $('#verification-result');
         $result.removeClass('success info')
                .addClass('error')
@@ -440,34 +318,17 @@ jQuery(document).ready(function($) {
         }
     }
 
-    // 事件監聽器
-    $('#start-scanner').on('click', function() {
-        startScanning();
-    });
-
-    $('#stop-scanner').on('click', function() {
-        stopScanning();
-    });
-
-    $('#camera-select').on('change', function() {
-        selectedDeviceId = $(this).val();
-        if (isScanning) {
-            stopScanning();
-            setTimeout(() => startScanning(), 300);
-        }
-    });
-
     // 手動輸入驗證碼核銷
-    $('.btn-manual-verify').on('click', function() {
+    $(document).on('click', '.btn-manual-verify', function() {
         const verificationCode = $('#manual-verification-code').val().trim();
 
         if (!verificationCode) {
-            updateStatus('請輸入驗證碼', 'error');
+            showError('請輸入驗證碼');
             return;
         }
 
         if (verificationCode.length < 8) {
-            updateStatus('驗證碼格式不正確', 'error');
+            showError('驗證碼格式不正確');
             return;
         }
 
@@ -475,33 +336,27 @@ jQuery(document).ready(function($) {
     });
 
     // Enter 鍵觸發核銷
-    $('#manual-verification-code').on('keypress', function(e) {
+    $(document).on('keypress', '#manual-verification-code', function(e) {
         if (e.which === 13 && !isVerifying) {
             $('.btn-manual-verify').click();
         }
     });
 
     // 輸入時自動轉換為大寫
-    $('#manual-verification-code').on('input', function() {
+    $(document).on('input', '#manual-verification-code', function() {
         this.value = this.value.toUpperCase();
     });
 
     // 頁面卸載時停止掃描
     $(window).on('beforeunload', function() {
-        stopScanning();
-    });
-
-    // 頁面失去焦點時暫停掃描（節省資源）
-    $(document).on('visibilitychange', function() {
-        if (document.hidden && isScanning) {
-            stopScanning();
-            updateStatus('頁面失去焦點，已暫停掃描', 'ready');
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear().catch(err => console.log('清除掃描器錯誤:', err));
         }
     });
 
     // 初始化
-    initScanner();
+    initQRScanner();
     loadRecentVerifications();
 
-    console.log('BookingPress QR Code 核銷系統已載入 (ZXing)');
+    console.log('BookingPress QR Code 核銷系統已載入 (Html5-QRCode)');
 });
