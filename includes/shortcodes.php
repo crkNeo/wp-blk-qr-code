@@ -24,11 +24,20 @@ function bookingpress_qr_verification_shortcode($atts) {
     );
 
     // 載入 ZXing 庫 (更快的掃描速度和更好的性能)
+    // 使用 jsDelivr CDN 確保可靠性
+    wp_enqueue_script(
+        'zxing-library',
+        'https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js',
+        array(),
+        '0.20.0',
+        true
+    );
+
     wp_enqueue_script(
         'zxing-browser',
-        'https://unpkg.com/@zxing/browser@latest/umd/index.min.js',
-        array(),
-        'latest',
+        'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.1/umd/index.min.js',
+        array('zxing-library'),
+        '0.1.1',
         true
     );
 

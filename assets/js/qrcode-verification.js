@@ -12,9 +12,12 @@ jQuery(document).ready(function($) {
 
     // 初始化掃描器
     function initScanner() {
-        // 等待 ZXing 庫載入
-        if (typeof ZXing === 'undefined') {
-            console.log('ZXing 庫載入中...');
+        // 等待 ZXing 庫載入 - 檢查正確的全局變量
+        if (typeof ZXing === 'undefined' || typeof ZXing.BrowserMultiFormatReader === 'undefined') {
+            console.log('ZXing 庫載入中...', {
+                ZXing: typeof ZXing,
+                window: Object.keys(window).filter(k => k.toLowerCase().includes('zxing'))
+            });
             setTimeout(initScanner, 500);
             return;
         }
