@@ -26,8 +26,8 @@ jQuery(document).ready(function($) {
             codeReader = new ZXing.BrowserMultiFormatReader();
             console.log('ZXing 掃描器已初始化');
 
-            // 獲取可用的攝像頭
-            loadCameras();
+            // 不在初始化時就請求權限，等用戶點擊開始掃描時再請求
+            updateStatus('準備就緒，點擊「開始掃描」', 'ready');
         } catch (error) {
             console.error('初始化掃描器失敗:', error);
             updateStatus('初始化失敗，請重新載入頁面', 'error');
@@ -41,7 +41,7 @@ jQuery(document).ready(function($) {
 
             if (videoInputDevices.length === 0) {
                 updateStatus('未找到攝像頭', 'error');
-                return;
+                return false;
             }
 
             const $cameraSelect = $('#camera-select');
@@ -56,18 +56,20 @@ jQuery(document).ready(function($) {
                 $cameraSelect.append(option);
 
                 // 檢測後置攝像頭（通常包含 "back" 或 "rear"）
+                const label = (device.label || '').toLowerCase();
                 if (!backCameraFound &&
-                    (device.label.toLowerCase().includes('back') ||
-                     device.label.toLowerCase().includes('rear') ||
-                     device.label.toLowerCase().includes('後'))) {
+                    (label.includes('back') ||
+                     label.includes('rear') ||
+                     label.includes('後') ||
+                     label.includes('environment'))) {
                     selectedDeviceId = device.deviceId;
                     backCameraFound = true;
                 }
             });
 
-            // 如果沒找到後置攝像頭，使用第一個
+            // 如果沒找到後置攝像頭，使用最後一個（手機通常最後一個是後置）
             if (!selectedDeviceId && videoInputDevices.length > 0) {
-                selectedDeviceId = videoInputDevices[0].deviceId;
+                selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
             }
 
             // 設置選中的攝像頭
@@ -79,11 +81,19 @@ jQuery(document).ready(function($) {
             }
 
             updateStatus('準備就緒，點擊「開始掃描」', 'ready');
-            console.log(`找到 ${videoInputDevices.length} 個攝像頭`);
+            console.log(`找到 ${videoInputDevices.length} 個攝像頭，已選擇:`, selectedDeviceId);
+
+            return true;
 
         } catch (error) {
             console.error('載入攝像頭失敗:', error);
-            updateStatus('無法訪問攝像頭，請檢查權限', 'error');
+            // 如果是權限錯誤，給出更明確的提示
+            if (error.name === 'NotAllowedError') {
+                updateStatus('請允許訪問攝像頭權限', 'error');
+            } else {
+                updateStatus('無法訪問攝像頭，請檢查權限', 'error');
+            }
+            return false;
         }
     }
 
@@ -91,10 +101,21 @@ jQuery(document).ready(function($) {
     async function startScanning() {
         if (isScanning || !codeReader) return;
 
+        // 如果還沒有選擇攝像頭，先載入攝像頭列表
+        if (!selectedDeviceId) {
+            updateStatus('正在請求攝像頭權限...', 'scanning');
+            const camerasLoaded = await loadCameras();
+
+            if (!camerasLoaded || !selectedDeviceId) {
+                updateStatus('無法訪問攝像頭，請檢查權限或重新整理頁面', 'error');
+                return;
+            }
+        }
+
         const deviceId = $('#camera-select').val() || selectedDeviceId;
 
         if (!deviceId) {
-            updateStatus('請選擇攝像頭', 'error');
+            updateStatus('無法選擇攝像頭，請重新整理頁面', 'error');
             return;
         }
 
@@ -103,6 +124,8 @@ jQuery(document).ready(function($) {
             $('#start-scanner').hide();
             $('#stop-scanner').show();
             updateStatus('掃描中...請將 QR Code 對準框內', 'scanning');
+
+            console.log('開始使用攝像頭:', deviceId);
 
             // 開始連續掃描
             await codeReader.decodeFromVideoDevice(
@@ -118,7 +141,16 @@ jQuery(document).ready(function($) {
 
         } catch (error) {
             console.error('啟動掃描失敗:', error);
-            updateStatus('啟動掃描失敗: ' + error.message, 'error');
+
+            // 根據錯誤類型提供更好的提示
+            if (error.name === 'NotAllowedError') {
+                updateStatus('請允許訪問攝像頭權限', 'error');
+            } else if (error.name === 'NotFoundError') {
+                updateStatus('找不到攝像頭設備', 'error');
+            } else {
+                updateStatus('啟動掃描失敗: ' + error.message, 'error');
+            }
+
             stopScanning();
         }
     }
