@@ -23,12 +23,12 @@ function bookingpress_qr_verification_shortcode($atts) {
         true
     );
 
-    // 載入 Html5-QRCode 庫 (手機支援更好)
+    // 載入 ZXing 庫 (更快的掃描速度和更好的性能)
     wp_enqueue_script(
-        'html5-qrcode',
-        'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+        'zxing-browser',
+        'https://unpkg.com/@zxing/browser@latest/umd/index.min.js',
         array(),
-        '2.3.8',
+        'latest',
         true
     );
 
@@ -48,9 +48,25 @@ function bookingpress_qr_verification_shortcode($atts) {
                 <!-- 掃描 QR Code -->
                 <div class="qr-scanner-section">
                     <h3>掃描 QR Code</h3>
-                    <div id="qr-reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+                    <div id="qr-scanner-wrapper">
+                        <div id="qr-video-container">
+                            <video id="qr-video" playsinline></video>
+                            <div id="qr-scan-region">
+                                <div class="qr-corner qr-corner-tl"></div>
+                                <div class="qr-corner qr-corner-tr"></div>
+                                <div class="qr-corner qr-corner-bl"></div>
+                                <div class="qr-corner qr-corner-br"></div>
+                            </div>
+                        </div>
+                        <div id="scanner-controls">
+                            <button id="start-scanner" class="scanner-btn scanner-btn-primary">開始掃描</button>
+                            <button id="stop-scanner" class="scanner-btn scanner-btn-secondary" style="display:none;">停止掃描</button>
+                            <select id="camera-select" style="display:none;"></select>
+                        </div>
+                        <div id="scanner-status">準備就緒</div>
+                    </div>
                     <div class="scanner-tips">
-                        <small>💡 提示：點擊上方區域啟動掃描，確保 QR Code 清晰可見</small>
+                        <small>💡 提示：將 QR Code 對準掃描框，系統將自動識別</small>
                     </div>
                 </div>
 
@@ -105,28 +121,157 @@ function bookingpress_qr_verification_shortcode($atts) {
         font-weight: 600;
     }
 
-    /* Html5QrcodeScanner 自定義樣式 */
-    #qr-reader {
-        border: 2px solid #007cba;
-        border-radius: 8px;
+    /* ZXing 掃描器自定義樣式 */
+    #qr-scanner-wrapper {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    #qr-video-container {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto 15px;
+        background: #000;
+        border-radius: 12px;
         overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
-    #qr-reader video {
+    #qr-video {
+        width: 100%;
+        height: auto;
+        display: block;
+        min-height: 300px;
+        object-fit: cover;
+    }
+
+    #qr-scan-region {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 250px;
+        border: 2px solid rgba(0, 255, 0, 0.5);
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+        animation: scan-border 2s ease-in-out infinite;
+    }
+
+    @keyframes scan-border {
+        0%, 100% { border-color: rgba(0, 255, 0, 0.5); }
+        50% { border-color: rgba(0, 255, 0, 0.9); }
+    }
+
+    .qr-corner {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        border: 3px solid #00ff00;
+    }
+
+    .qr-corner-tl {
+        top: -2px;
+        left: -2px;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    .qr-corner-tr {
+        top: -2px;
+        right: -2px;
+        border-left: none;
+        border-bottom: none;
+    }
+
+    .qr-corner-bl {
+        bottom: -2px;
+        left: -2px;
+        border-right: none;
+        border-top: none;
+    }
+
+    .qr-corner-br {
+        bottom: -2px;
+        right: -2px;
+        border-left: none;
+        border-top: none;
+    }
+
+    #scanner-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .scanner-btn {
+        padding: 10px 24px;
+        border: none;
         border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    #qr-reader__dashboard_section {
-        background-color: #f8f9fa !important;
-        border-top: 1px solid #dee2e6 !important;
+    .scanner-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
     }
 
-    #qr-reader__camera_selection {
-        margin: 10px 0 !important;
+    .scanner-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
     }
 
-    #qr-reader__scan_region {
-        border: 2px dashed #007cba !important;
+    .scanner-btn-secondary {
+        background: #dc3545;
+        color: white;
+    }
+
+    .scanner-btn-secondary:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+    }
+
+    #camera-select {
+        padding: 10px 15px;
+        border: 2px solid #e1e1e1;
+        border-radius: 6px;
+        font-size: 14px;
+        background: white;
+        cursor: pointer;
+    }
+
+    #scanner-status {
+        text-align: center;
+        padding: 8px 15px;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+
+    #scanner-status.scanning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    #scanner-status.success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    #scanner-status.error {
+        background: #f8d7da;
+        color: #721c24;
     }
 
     .scanner-tips {
@@ -136,26 +281,144 @@ function bookingpress_qr_verification_shortcode($atts) {
         text-align: center;
     }
 
+    /* 成功通知樣式 */
+    .notification-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .notification-modal {
+        background: white;
+        padding: 40px 30px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        max-width: 450px;
+        width: 90%;
+        text-align: center;
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .notification-icon {
+        font-size: 72px;
+        margin-bottom: 20px;
+        animation: scaleIn 0.5s ease;
+    }
+
+    @keyframes scaleIn {
+        0% { transform: scale(0); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .notification-title {
+        font-size: 28px;
+        font-weight: bold;
+        color: #28a745;
+        margin-bottom: 15px;
+    }
+
+    .notification-details {
+        text-align: left;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+
+    .notification-details p {
+        margin: 8px 0;
+        font-size: 15px;
+        color: #495057;
+    }
+
+    .notification-details strong {
+        color: #212529;
+        display: inline-block;
+        min-width: 100px;
+    }
+
+    .notification-close-btn {
+        padding: 12px 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .notification-close-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+    }
+
     /* 手機優化 */
     @media (max-width: 768px) {
         .qr-scanner-section {
             padding: 15px;
         }
-        
-        #qr-reader {
-            max-width: 100%;
+
+        #qr-scan-region {
+            width: 200px;
+            height: 200px;
         }
-        
+
         .manual-verification {
             padding: 15px;
         }
-        
+
         .input-group {
             flex-direction: column;
         }
-        
+
         .input-group button {
             margin-top: 10px;
+        }
+
+        .notification-modal {
+            padding: 30px 20px;
+            max-width: 95%;
+        }
+
+        .notification-icon {
+            font-size: 56px;
+        }
+
+        .notification-title {
+            font-size: 24px;
+        }
+
+        .notification-details strong {
+            min-width: 80px;
         }
     }
 
