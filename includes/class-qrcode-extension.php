@@ -9,20 +9,22 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class BookingPress_QRCode_Extension {
+class BookingPress_QRCode_Extension
+{
 
-    public function __construct() {
+    public function __construct()
+    {
         // 使用 BookingPress 官方提供的 hook (推薦)
         add_action('bookingpress_after_add_appointment_from_backend', array($this, 'generate_qrcode_after_appointment'), 10, 3);
-        
+
         // 保留 AJAX hook 作為備用
         add_action('wp_ajax_bookingpress_book_appointment_booking', array($this, 'generate_qr_after_ajax_booking'), 999);
         add_action('wp_ajax_nopriv_bookingpress_book_appointment_booking', array($this, 'generate_qr_after_ajax_booking'), 999);
-        
+
         // 其他備用 hooks
         add_action('bookingpress_after_booking_save', array($this, 'generate_qrcode_after_booking'), 10, 3);
         add_action('bookingpress_payment_completed', array($this, 'generate_qrcode_after_booking'), 10, 3);
-        
+
         // 添加前端調試腳本
         add_action('wp_footer', array($this, 'add_debug_script'));
         add_action('wp_enqueue_scripts', array($this, 'enqueue_debug_scripts'));
@@ -39,7 +41,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 使用官方 hook 生成 QR Code (推薦方法)
      */
-    public function generate_qrcode_after_appointment($inserted_booking_id, $bookingpress_appointment_data, $entry_id) {
+    public function generate_qrcode_after_appointment($inserted_booking_id, $bookingpress_appointment_data, $entry_id)
+    {
         $this->console_log("官方 Hook 觸發: bookingpress_after_add_appointment_from_backend");
         $this->console_log("預訂 ID: {$inserted_booking_id}, Entry ID: {$entry_id}");
 
@@ -50,7 +53,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 預訂完成後生成 QR Code (通用方法)
      */
-    public function generate_qrcode_after_booking($booking_id, $entry_details, $payment_gateway_data) {
+    public function generate_qrcode_after_booking($booking_id, $entry_details, $payment_gateway_data)
+    {
         global $wpdb, $BookingPress;
 
         if (empty($booking_id)) {
@@ -108,14 +112,16 @@ class BookingPress_QRCode_Extension {
     /**
      * 生成驗證碼
      */
-    private function generate_verification_code($booking_id) {
-        return 'BP' . str_pad($booking_id, 8, '0', STR_PAD_LEFT) . strtoupper(substr(md5(uniqid()), 0, 6));
+    private function generate_verification_code($booking_id)
+    {
+        return $booking_id . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
     }
 
     /**
      * 生成 QR Code 圖片
      */
-    private function generate_qr_code_image($content, $booking_id) {
+    private function generate_qr_code_image($content, $booking_id)
+    {
         // 使用 Google Charts API 或 phpqrcode 庫
         // 這裡使用 Google Charts API 作為示例
 
@@ -175,7 +181,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 簡單的備用 QR Code 生成方案
      */
-    private function generate_simple_qr_fallback($content, $file_path, $file_url) {
+    private function generate_simple_qr_fallback($content, $file_path, $file_url)
+    {
         // 嘗試使用其他免費 QR Code API
         $backup_apis = array(
             'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($content),
@@ -209,7 +216,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 創建文字版本的 QR Code 替代方案
      */
-    private function create_text_qr_fallback($content, $file_path, $file_url) {
+    private function create_text_qr_fallback($content, $file_path, $file_url)
+    {
         // 創建一個簡單的文字圖片作為最後備用方案
         if (function_exists('imagecreate')) {
             $img = imagecreate(300, 300);
@@ -238,7 +246,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 在 AJAX 預訂完成後生成 QR Code
      */
-    public function generate_qr_after_ajax_booking() {
+    public function generate_qr_after_ajax_booking()
+    {
         $this->console_log('AJAX 預訂 hook 觸發');
 
         // 添加到 AJAX response 的 filter
@@ -251,7 +260,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 延遲的 QR Code 生成
      */
-    public function delayed_qr_generation() {
+    public function delayed_qr_generation()
+    {
         global $wpdb, $BookingPress;
 
         $this->console_log('開始延遲 QR Code 生成');
@@ -285,7 +295,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 將 QR Code 調試信息添加到 BookingPress AJAX response
      */
-    public function add_qr_debug_to_response($response, $posted_data) {
+    public function add_qr_debug_to_response($response, $posted_data)
+    {
         if (!isset($response['qr_debug'])) {
             $response['qr_debug'] = array();
         }
@@ -301,7 +312,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 在 my-bookings 頁面添加 QR Code 數據
      */
-    public function add_qrcode_to_booking_data($bookings_data, $booking_id) {
+    public function add_qrcode_to_booking_data($bookings_data, $booking_id)
+    {
         // 從獨立的 QR Code 表獲取資料
         if (empty($bookings_data) || !is_array($bookings_data)) {
             return $bookings_data;
@@ -369,7 +381,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 獲取 QR Code 表名
      */
-    public function get_qr_table_name() {
+    public function get_qr_table_name()
+    {
         global $wpdb;
         return $wpdb->prefix . 'bookingpress_qrcodes';
     }
@@ -377,7 +390,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 檢查 QR Code 表是否存在
      */
-    public function qr_table_exists() {
+    public function qr_table_exists()
+    {
         global $wpdb;
         $table_name = $this->get_qr_table_name();
         return $wpdb->get_var("SHOW TABLES LIKE '{$table_name}'") === $table_name;
@@ -388,14 +402,16 @@ class BookingPress_QRCode_Extension {
      */
     private $console_messages = array();
 
-    public function console_log($message) {
+    public function console_log($message)
+    {
         $this->console_messages[] = '[BookingPress QR Code] ' . $message;
     }
 
     /**
      * 在頁面底部添加 console.log 腳本
      */
-    public function add_debug_script() {
+    public function add_debug_script()
+    {
         if (!empty($this->console_messages)) {
             echo '<script>';
             foreach ($this->console_messages as $message) {
@@ -411,7 +427,8 @@ class BookingPress_QRCode_Extension {
     /**
      * 載入調試腳本
      */
-    public function enqueue_debug_scripts() {
+    public function enqueue_debug_scripts()
+    {
         // 在所有頁面載入調試腳本
         wp_enqueue_script(
             'bookingpress-qrcode-debug',
@@ -425,49 +442,50 @@ class BookingPress_QRCode_Extension {
     /**
      * 載入腳本和樣式
      */
-public function enqueue_scripts() {
-    // 只在管理後台或特定頁面載入，避免全域衝突
-    if (is_admin()) {
-        return;
-    }
+    public function enqueue_scripts()
+    {
+        // 只在管理後台或特定頁面載入，避免全域衝突
+        if (is_admin()) {
+            return;
+        }
 
-    global $post;
+        global $post;
 
-    // 安全檢查
-    if (!is_a($post, 'WP_Post')) {
-        return;
-    }
+        // 安全檢查
+        if (!is_a($post, 'WP_Post')) {
+            return;
+        }
 
-    // 只在 my-bookings 頁面載入 QR Code 顯示腳本
-if (is_page() && has_shortcode($post->post_content, 'bookingpress_my_appointments')) {
-    wp_enqueue_style(
-        'bookingpress-qrcode-style',
-        plugins_url('../assets/css/qrcode-style.css', __FILE__),
-        array(),
-        '1.0.0'
-    );
+        // 只在 my-bookings 頁面載入 QR Code 顯示腳本
+        if (is_page() && has_shortcode($post->post_content, 'bookingpress_my_appointments')) {
+            wp_enqueue_style(
+                'bookingpress-qrcode-style',
+                plugins_url('../assets/css/qrcode-style.css', __FILE__),
+                array(),
+                '1.0.0'
+            );
 
-    wp_enqueue_script(
-        'bookingpress-qrcode-script',
-        plugins_url('../assets/js/qrcode-script.js', __FILE__),
-        array('jquery'),
-        '1.0.0',
-        true
-    );
+            wp_enqueue_script(
+                'bookingpress-qrcode-script',
+                plugins_url('../assets/js/qrcode-script.js', __FILE__),
+                array('jquery'),
+                '1.0.0',
+                true
+            );
 
-    // 準備要傳遞給 JavaScript 的數據
-    $booking_data_for_js = array();
+            // 準備要傳遞給 JavaScript 的數據
+            $booking_data_for_js = array();
 
-    // 直接查詢 BookingPress 預訂表
-    global $wpdb;
-    $current_user_id = get_current_user_id();
+            // 直接查詢 BookingPress 預訂表
+            global $wpdb;
+            $current_user_id = get_current_user_id();
 
-    if ($current_user_id > 0) {
-        // 直接從 BookingPress 資料表查詢當前用戶的預訂
-        $bookings_table = $wpdb->prefix . 'bookingpress_entries';
+            if ($current_user_id > 0) {
+                // 直接從 BookingPress 資料表查詢當前用戶的預訂
+                $bookings_table = $wpdb->prefix . 'bookingpress_entries';
 
-        $my_bookings = $wpdb->get_results($wpdb->prepare(
-            "SELECT bookingpress_entry_id as bookingpress_booking_id, 
+                $my_bookings = $wpdb->get_results($wpdb->prepare(
+                    "SELECT bookingpress_entry_id as bookingpress_booking_id, 
                     bookingpress_customer_name, 
                     bookingpress_service_name,
                     bookingpress_appointment_date,
@@ -475,66 +493,66 @@ if (is_page() && has_shortcode($post->post_content, 'bookingpress_my_appointment
              FROM {$bookings_table} 
              WHERE bookingpress_customer_id = %d 
              ORDER BY bookingpress_created_at DESC",
-            $current_user_id
-        ), ARRAY_A);
+                    $current_user_id
+                ), ARRAY_A);
 
-        error_log('找到預訂數量: ' . count($my_bookings));
+                error_log('找到預訂數量: ' . count($my_bookings));
 
-        if (!empty($my_bookings)) {
-            $qr_table = $wpdb->prefix . 'bookingpress_qrcodes';
+                if (!empty($my_bookings)) {
+                    $qr_table = $wpdb->prefix . 'bookingpress_qrcodes';
 
-            foreach ($my_bookings as $booking) {
-                $booking_id = $booking['bookingpress_booking_id'];
+                    foreach ($my_bookings as $booking) {
+                        $booking_id = $booking['bookingpress_booking_id'];
 
-                // 從 QR Code 表中獲取資料
-                $qrcode_data = $wpdb->get_row($wpdb->prepare(
-                    "SELECT qrcode_url, verification_code, status FROM {$qr_table} WHERE booking_id = %d AND status = 'active'",
-                    $booking_id
-                ));
+                        // 從 QR Code 表中獲取資料
+                        $qrcode_data = $wpdb->get_row($wpdb->prepare(
+                            "SELECT qrcode_url, verification_code, status FROM {$qr_table} WHERE booking_id = %d AND status = 'active'",
+                            $booking_id
+                        ));
 
-                if ($qrcode_data) {
-                    $booking_data_for_js[$booking_id] = array(
-                        'qrcode_url' => $qrcode_data->qrcode_url,
-                        'verification_code' => $qrcode_data->verification_code,
-                        'booking_data' => $booking
-                    );
-                    error_log("預訂 {$booking_id} 有 QR Code 資料");
+                        if ($qrcode_data) {
+                            $booking_data_for_js[$booking_id] = array(
+                                'qrcode_url' => $qrcode_data->qrcode_url,
+                                'verification_code' => $qrcode_data->verification_code,
+                                'booking_data' => $booking
+                            );
+                            error_log("預訂 {$booking_id} 有 QR Code 資料");
+                        } else {
+                            error_log("預訂 {$booking_id} 沒有 QR Code 資料");
+                        }
+                    }
                 } else {
-                    error_log("預訂 {$booking_id} 沒有 QR Code 資料");
+                    error_log('當前用戶沒有預訂記錄');
                 }
+            } else {
+                error_log('用戶未登入');
             }
-        } else {
-            error_log('當前用戶沒有預訂記錄');
+
+            // 使用 wp_localize_script 將數據傳遞給 JavaScript
+            wp_localize_script(
+                'bookingpress-qrcode-script',
+                'bookingpress_qrcode_data',
+                array(
+                    'ajax_url' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('bookingpress_qrcode_nonce'),
+                    'bookings' => $booking_data_for_js,
+                )
+            );
+
+            // 除錯：記錄傳遞的資料
+            error_log('最終傳遞給前端的 QR Code 資料: ' . print_r($booking_data_for_js, true));
         }
-    } else {
-        error_log('用戶未登入');
+
+        // 如果是核銷頁面，載入核銷相關腳本
+        if (is_page() && has_shortcode($post->post_content, 'bookingpress_qr_verification')) {
+            wp_enqueue_style(
+                'bookingpress-qrcode-verification-style',
+                plugins_url('../assets/css/qrcode-style.css', __FILE__),
+                array(),
+                '1.0.0'
+            );
+        }
     }
-
-    // 使用 wp_localize_script 將數據傳遞給 JavaScript
-    wp_localize_script(
-        'bookingpress-qrcode-script',
-        'bookingpress_qrcode_data',
-        array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('bookingpress_qrcode_nonce'),
-            'bookings' => $booking_data_for_js,
-        )
-    );
-
-    // 除錯：記錄傳遞的資料
-    error_log('最終傳遞給前端的 QR Code 資料: ' . print_r($booking_data_for_js, true));
-}
-
-    // 如果是核銷頁面，載入核銷相關腳本
-    if (is_page() && has_shortcode($post->post_content, 'bookingpress_qr_verification')) {
-        wp_enqueue_style(
-            'bookingpress-qrcode-verification-style',
-            plugins_url('../assets/css/qrcode-style.css', __FILE__),
-            array(),
-            '1.0.0'
-        );
-    }
-}
 }
 
 // 初始化類
@@ -550,7 +568,8 @@ add_action('wp_ajax_nopriv_verify_booking_qrcode', 'handle_qrcode_verification')
 add_action('wp_ajax_get_recent_verifications', 'handle_get_recent_verifications');
 add_action('wp_ajax_nopriv_get_recent_verifications', 'handle_get_recent_verifications');
 
-function handle_qrcode_verification() {
+function handle_qrcode_verification()
+{
     global $wpdb, $BookingPress;
 
     // 檢查權限
@@ -571,7 +590,7 @@ function handle_qrcode_verification() {
 
     // 從獨立的 QR Code 表查詢
     $qr_table = $wpdb->prefix . 'bookingpress_qrcodes';
-    
+
     $qr_record = $wpdb->get_row(
         $wpdb->prepare(
             "SELECT * FROM {$qr_table} 
@@ -648,7 +667,8 @@ function handle_qrcode_verification() {
 /**
  * 獲取最近核銷紀錄的AJAX處理函數
  */
-function handle_get_recent_verifications() {
+function handle_get_recent_verifications()
+{
     global $wpdb, $BookingPress;
 
     // 檢查權限
@@ -663,7 +683,7 @@ function handle_get_recent_verifications() {
 
     $qr_table = $wpdb->prefix . 'bookingpress_qrcodes';
     $entries_table = $wpdb->prefix . 'bookingpress_entries';
-    
+
     // 獲取最近10筆核銷紀錄
     $recent_verifications = $wpdb->get_results(
         "SELECT q.*, e.bookingpress_customer_name, e.bookingpress_service_name, e.bookingpress_appointment_date
@@ -691,4 +711,5 @@ function handle_get_recent_verifications() {
         wp_send_json_success(array());
     }
 }
+
 ?>
