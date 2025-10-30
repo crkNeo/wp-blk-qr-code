@@ -243,7 +243,7 @@ class BookingPress_QRCode_Extension
      */
     private function generate_verification_code($booking_id)
     {
-        return 'BP' . str_pad($booking_id, 8, '0', STR_PAD_LEFT) . strtoupper(substr(md5(uniqid()), 0, 6));
+        return $booking_id . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
     }
 
     /**
