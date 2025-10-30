@@ -1,0 +1,462 @@
+/**
+ * BookingPress QR Code 樣式
+ */
+
+/* QR Code 區域樣式 */
+
+/* 核銷紀錄項目樣式 */
+.verification-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.verification-info {
+    flex: 1;
+}
+
+.verification-info strong {
+    color: #28a745;
+    font-size: 16px;
+}
+
+.verification-info small {
+    color: #6c757d;
+    display: block;
+    margin-top: 5px;
+}
+
+.verification-time {
+    font-style: italic;
+}
+
+.verification-code-display {
+    background: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #495057;
+}
+
+.verification-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.verification-success h3 {
+    color: #155724;
+    margin-bottom: 15px;
+}
+
+.booking-details p {
+    margin: 8px 0;
+    color: #155724;
+}
+
+/* QR Code 按鈕樣式 */
+.booking-qrcode-button-container {
+    margin: 10px 0;
+    text-align: center;
+}
+
+.btn-view-qrcode {
+    background: #007cba;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.btn-view-qrcode:hover {
+    background: #005a87;
+}
+
+.qrcode-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.btn-show-qrcode-large,
+.btn-download-qrcode {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.btn-show-qrcode-large:hover,
+.btn-download-qrcode:hover {
+    background: #218838;
+}
+
+/* QR Code 彈窗樣式 */
+.qrcode-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.qrcode-modal {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+}
+
+.qrcode-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.qrcode-modal-close:hover {
+    color: #000;
+}
+
+.qrcode-modal h3 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.qrcode-modal-image {
+    max-width: 250px;
+    width: 100%;
+    height: auto;
+    margin: 15px 0;
+}
+
+.modal-verification-code,
+.modal-booking-id {
+    font-weight: bold;
+    margin: 10px 0;
+    color: #007cba;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn-modal-download,
+.btn-modal-close {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-modal-download {
+    background: #28a745;
+    color: white;
+}
+
+.btn-modal-close {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-modal-download:hover {
+    background: #218838;
+}
+
+.btn-modal-close:hover {
+    background: #545b62;
+}
+.booking-qrcode-section {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+.booking-qrcode-section h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.booking-qrcode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.qrcode-image {
+    max-width: 200px;
+    height: auto;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.qrcode-image:hover {
+    transform: scale(1.05);
+    border-color: #0073aa;
+}
+
+.verification-code {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 14px;
+    color: #666;
+    background-color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    margin: 5px 0;
+}
+
+.btn-download-qrcode {
+    background-color: #0073aa;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.btn-download-qrcode:hover {
+    background-color: #005a87;
+}
+
+/* QR Code 彈窗樣式 */
+.qrcode-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 999999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.qrcode-modal {
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    position: relative;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.qrcode-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+    font-weight: bold;
+}
+
+.qrcode-modal-close:hover {
+    color: #333;
+}
+
+.qrcode-modal-image {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.qrcode-modal p {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 核銷頁面樣式 */
+.qrcode-scanner-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.qrcode-scanner-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.verification-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.manual-verification {
+    padding: 20px;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.manual-verification h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.manual-verification input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+}
+
+.btn-manual-verify {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+    transition: background-color 0.2s ease;
+}
+
+.btn-manual-verify:hover {
+    background-color: #218838;
+}
+
+.verification-result {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    display: none;
+}
+
+.verification-result.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.verification-result.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .booking-qrcode-section {
+        padding: 10px;
+    }
+
+    .qrcode-image {
+        max-width: 150px;
+    }
+
+    .qrcode-modal {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .qrcode-scanner-container {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .verification-methods {
+        gap: 15px;
+    }
+}
+
+/* 打印樣式 */
+@media print {
+    .booking-qrcode-section {
+        background-color: white !important;
+        border: 2px solid #000 !important;
+    }
+
+    .btn-download-qrcode {
+        display: none;
+    }
+
+    .qrcode-image {
+        border: 1px solid #000 !important;
+    }
+}
+
+/* BookingPress 兼容性樣式 */
+.bpa-front-my-booking-item .booking-qrcode-section {
+    margin-top: 15px;
+}
+
+.bpa-front-booking-details {
+    position: relative;
+}
+
+/* 載入動畫 */
+.qrcode-loading {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #0073aa;
+    border-radius: 50%;
+    animation: qrcode-spin 1s linear infinite;
+}
+
+@keyframes qrcode-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
