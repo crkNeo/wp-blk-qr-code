@@ -99,6 +99,9 @@ class BookingPress_QRCode_Extension
 
             if ($insert_result) {
                 $this->console_log("成功儲存 QR Code 記錄，預訂 ID: {$booking_id}");
+
+                // 發送包含 QR Code 的郵件給客戶
+                $this->send_qr_code_email($booking_id, $verification_code, $qr_code_url);
             } else {
                 $this->console_log("儲存 QR Code 記錄失敗，預訂 ID: {$booking_id}");
                 $this->console_log("資料庫錯誤: " . $wpdb->last_error);
@@ -109,11 +112,138 @@ class BookingPress_QRCode_Extension
     }
 
     /**
+     * 發送包含 QR Code 的郵件給客戶
+     */
+    private function send_qr_code_email($booking_id, $verification_code, $qr_code_url)
+    {
+        global $wpdb;
+
+        $this->console_log("準備發送 QR Code 郵件，預訂 ID: {$booking_id}");
+
+        // 獲取預訂資訊
+        $entries_table = $wpdb->prefix . 'bookingpress_entries';
+        $booking = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$entries_table} WHERE bookingpress_entry_id = %d",
+                $booking_id
+            )
+        );
+
+        if (!$booking) {
+            $this->console_log("找不到預訂記錄，無法發送郵件");
+            return false;
+        }
+
+        // 獲取客戶郵箱
+        $customer_email = $booking->bookingpress_customer_email;
+        if (empty($customer_email)) {
+            $this->console_log("客戶郵箱為空，無法發送郵件");
+            return false;
+        }
+
+        // 準備郵件內容
+        $customer_name = $booking->bookingpress_customer_name;
+        $service_name = $booking->bookingpress_service_name;
+        $appointment_date = $booking->bookingpress_appointment_date;
+        $appointment_time = $booking->bookingpress_appointment_time;
+
+        // 郵件主題
+        $subject = '您的預約 QR Code - ' . $service_name;
+
+        // 郵件標頭
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+
+        // 郵件內容（HTML）
+        $message = '
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .email-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; }
+                .qr-section { text-align: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+                .qr-code-img { max-width: 250px; margin: 20px auto; display: block; border: 3px solid #667eea; border-radius: 8px; }
+                .info-box { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196F3; margin: 20px 0; }
+                .verification-code { font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 2px; margin: 15px 0; }
+                .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666; border-radius: 0 0 10px 10px; }
+                .booking-details { background: #fff; padding: 15px; margin: 15px 0; border-radius: 6px; }
+                .booking-details p { margin: 8px 0; }
+                .highlight { color: #667eea; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="email-container">
+                <div class="header">
+                    <h1>🎉 預約成功！</h1>
+                    <p>感謝您的預約，以下是您的活動 QR Code</p>
+                </div>
+
+                <div class="content">
+                    <p>親愛的 <strong>' . esc_html($customer_name) . '</strong>，</p>
+                    <p>您的預約已成功確認！請保存此郵件並於約定時間出示 QR Code。</p>
+
+                    <div class="booking-details">
+                        <h3 style="color: #667eea; margin-top: 0;">📋 預約資訊</h3>
+                        <p><strong>服務項目：</strong> ' . esc_html($service_name) . '</p>
+                        <p><strong>預約日期：</strong> ' . esc_html($appointment_date) . '</p>
+                        <p><strong>預約時間：</strong> ' . esc_html($appointment_time) . '</p>
+                        <p><strong>預訂編號：</strong> #' . esc_html($booking_id) . '</p>
+                    </div>
+
+                    <div class="qr-section">
+                        <h3 style="color: #667eea;">您的專屬 QR Code</h3>
+                        <p>請於活動當天出示此 QR Code 給服務人員掃描</p>
+                        <img src="' . esc_url($qr_code_url) . '" alt="QR Code" class="qr-code-img">
+                        <p style="margin-top: 20px;">驗證碼</p>
+                        <div class="verification-code">' . esc_html($verification_code) . '</div>
+                        <p style="font-size: 12px; color: #666; margin-top: 15px;">
+                            💡 建議將此 QR Code 截圖或下載保存到手機相簿
+                        </p>
+                    </div>
+
+                    <div class="info-box">
+                        <p style="margin: 0;"><strong>📝 溫馨提醒：</strong></p>
+                        <ul style="margin: 10px 0;">
+                            <li>請提前 10-15 分鐘到達現場</li>
+                            <li>請確保 QR Code 清晰可辨識</li>
+                            <li>每個 QR Code 僅能使用一次</li>
+                            <li>如有任何問題，請聯繫我們的客服團隊</li>
+                        </ul>
+                    </div>
+
+                    <p style="margin-top: 30px;">期待與您見面！</p>
+                </div>
+
+                <div class="footer">
+                    <p>此郵件由系統自動發送，請勿直接回覆</p>
+                    <p style="margin-top: 10px;">© ' . date('Y') . ' ' . get_bloginfo('name') . '. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        ';
+
+        // 發送郵件
+        $mail_sent = wp_mail($customer_email, $subject, $message, $headers);
+
+        if ($mail_sent) {
+            $this->console_log("QR Code 郵件發送成功至: {$customer_email}");
+        } else {
+            $this->console_log("QR Code 郵件發送失敗至: {$customer_email}");
+        }
+
+        return $mail_sent;
+    }
+
+    /**
      * 生成驗證碼
      */
     private function generate_verification_code($booking_id)
     {
-        return $booking_id . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
+        return 'BP' . str_pad($booking_id, 8, '0', STR_PAD_LEFT) . strtoupper(substr(md5(uniqid()), 0, 6));
     }
 
     /**
